@@ -8,6 +8,8 @@
 #
 
 library(shiny)
+library(dplyr)
+library(DT)
 
 source("C:/Users/ryand/Dropbox/Sports Analytics/hockey_data/Utah_HC_project/goalie_analysis.R")
 
@@ -19,26 +21,52 @@ head(goalie_stats)
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Goalie Analysis"),
+    titlePanel("Goalie Comparision"),
     
-    
-
-    
-   
+    sidebarLayout(
+      sidebarPanel (
+        selectInput(
+          inputId = "goalie1",
+          label = "Select First Goalie",
+          choices = unique(goalie_stats_df$Goalie.Name),
+          selected = unique(goalie_stats_df$Goalie.Name)[1]
+        ),
+        selectInput(
+          inputId = "goalie2",
+          label =  "Select Second Goalie",
+          choices = unique(goalie_stats_df$Goalie.Name),
+          selected = unique(goalie_stats_df$Goalie.Name)[2]
+        )
+      ),
+      mainPanel(
+        DTOutput("goalieTable")
+      )
+    )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white',
-             xlab = 'Waiting time to next eruption (in mins)',
-             main = 'Histogram of waiting times')
+    selected_data <- reactive({
+      goalie_stats_df %>%
+        filter(Goalie.Name %in% c(input$goalie1, input$goalie2)) %>%
+        select(
+          Goalie.Name,
+          Goalie.Shots.Against,
+          Goalie.Goals.Allowed,
+          Goalie.Save..,
+          Goalie.PK.Save..,
+          Goalie.High.Danger.Shots.Against,
+          Goalie.Mid.Range.Shots.Against,
+          Goalie.Long.Range.Shots.Against
+        )
+    })
+    output$goalieTable <- renderDT({
+      selected_data() %>%
+        datatable(
+          options =  list(pageLength = 10, scrollX = TRUE),
+          rownames = FALSE
+        )
     })
 }
 
