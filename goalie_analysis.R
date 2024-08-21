@@ -503,14 +503,14 @@ plot_ly(x = goalie_stats_df$Goalie.PK.Shots.Against,
 # Creating a graph showcasing PK Shots Against vs PK Save % for 
 # every goalie
 plot_ly(x = goalie_stats_df$Goalie.PK.Shots.Against, 
-        y = goalie_stats_df$Goalie.PK.Save..,
+        y =  goalie_stats_df$Goalie.PK.Save.., 
         type = "scatter",
         mode = "markers", 
         marker = list(size = 10, color = "blue"), 
         text = goalie_stats_df$Goalie.Name, 
         hoverinfo = 'text') %>%
   layout(
-    title = "PK Shots Against vs PK Save % ", 
+    title = "PK Shots Against vs PK Save %", 
     xaxis = list(title = "PK Shots Against"),
     yaxis = list(title = "PK Save %")
   )

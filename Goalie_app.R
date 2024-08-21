@@ -33,6 +33,13 @@ ui <- fluidPage(
   
   sidebarLayout(
     sidebarPanel(
+      sliderInput(
+        "slider", 
+        "Number of Games Played",
+        min = 1,
+        max = 82,
+        value = 1
+      ),
       selectInput(
         inputId = "goalies",
         label = "Select Goalies",
@@ -82,6 +89,7 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
+  
   observeEvent(input$select_all, {
     updateSelectInput(session, "goalies", selected = unique(goalie_stats$Goalie.Name))
   })
@@ -102,21 +110,28 @@ server <- function(input, output, session) {
     if (length(input$goalies) == 0 || length(input$metrics) == 0) {
       return(data.frame())
     }
-    
+    filtered_data <- goalie_stats[goalie_stats$Goalie.Games.Played >= input$slider, ]
     # Filter data based on selected goalies
-    filtered_data <- goalie_stats %>%
+    filtered_data <- filtered_data %>%
       filter(Goalie.Name %in% input$goalies) %>%
       select(Goalie.Name, all_of(input$metrics))
+    
     
     # Return the filtered data
     filtered_data
   })
   
+  
+  
   output$goalieTable <- renderDT({
     selected_data() %>%
       datatable(
-        options = list(pageLength = 10, scrollX = TRUE),
-        rownames = FALSE
+        iris,
+        options = list(pageLength = 10, 
+                       scrollX = TRUE, 
+                       autoWidth = TRUE, 
+                       columnDefs = list(list(width = "auto", targets = "_all")),
+                       rownames = FALSE),
       )
   })
 }
