@@ -13,21 +13,30 @@ library(ggplot2)
 library(gt)
 library(plotly)
 
-# Load data
+
+#Load data
 data <- load_pbp('2023-2024')
 
+
+#Filtering Data
 all_games <- unique(data$game_id)
 
 
-# Filter data for shots and goals
+# Filter data for shots and goals that exclude 
+# empty net goals and empty net shot attempts
 shot_goal_data <- data %>%
-  filter(event_type %in% c("SHOT", "GOAL"))
+  filter(event_type %in% c("SHOT", "GOAL")) %>%
+  filter(extra_attacker %in% c("FALSE"))
 
 # Get unique goalie names
 unique_goalie_names <- data %>%
   distinct(event_goalie_name) %>%
   filter(!is.na(event_goalie_name))
 
+
+#General Statistics
+
+#function to get the number of games that a goalie played
 goalie_games_played <- function(goalie_name){
   goalie_data <- data %>% 
     filter(event_goalie_name == goalie_name)
@@ -35,8 +44,15 @@ goalie_games_played <- function(goalie_name){
   
   return(length(goalie_data))
 }
+#function that gets the distance of each shot that a goalie has faced
+goalie_shot_distance <- function(goalie_name) {
+  shot_distance_vector <- shot_goal_data %>%
+    filter(event_goalie_name == goalie_name) %>%
+    pull(shot_distance)
+  return(shot_distance_vector)
+}
 
-
+#function to get the number of shots that a goaltender faced 
 goalie_shots_against <- function(goalie_name) {
   shots <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name) %>%
@@ -44,7 +60,8 @@ goalie_shots_against <- function(goalie_name) {
   return(shots)
 }
 
-
+#function to get the number of goals that a goaltender allowed
+#in the 2023-2024 season
 goalie_goals_allowed <- function(goalie_name) {
   goals <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, event_type == "GOAL") %>%
@@ -52,6 +69,7 @@ goalie_goals_allowed <- function(goalie_name) {
   return(goals)
 }
 
+#function to calculate the save percentage of a goaltender
 goalie_save_percent <- function(goalie_name) {
   shots <- goalie_shots_against(goalie_name)
   goals <- goalie_goals_allowed(goalie_name)
@@ -62,6 +80,12 @@ goalie_save_percent <- function(goalie_name) {
   return(round(save_percentage, 3))
 }
 
+
+#Penalty Kill Stats
+
+
+#function to calculate the number of shots that a goaltender who's 
+#team is on the penalty kill faced
 goalie_pk_shots_against <- function(goalie_name) {
   pk_shots <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, strength_code == "PP", event_type == "SHOT") %>%
@@ -73,6 +97,8 @@ goalie_pk_shots_against <- function(goalie_name) {
   return(pk_shots + pk_goals)
 }
 
+#function that returns the number of goals that a goaltender allowed
+#while their team was on the penalty kill 
 goalie_pk_goals_against <- function(goalie_name) {
   pk_goals <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, strength_code == "PP", event_type == "GOAL") %>%
@@ -80,6 +106,7 @@ goalie_pk_goals_against <- function(goalie_name) {
   return(pk_goals)
 }
 
+#function to get the save percentage of a goaltender who's team is on the penalty kill
 goalie_pk_save_percent <- function(goalie_name) {
   pk_shots <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, strength_code == "PP", event_type == "SHOT") %>%
@@ -94,6 +121,11 @@ goalie_pk_save_percent <- function(goalie_name) {
   return(round(pk_save_percentage, digits = 3))
 }
 
+
+#High Danger Statistics (shots being \<= 29ft away from opposing teams' net)
+
+
+#function that calculates the number of high danger shots that a goalie has faced
 goalie_high_danger_shots_against <- function(goalie_name) {
   high_danger_shots <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance <= 29, event_type == "SHOT") %>%
@@ -104,14 +136,7 @@ goalie_high_danger_shots_against <- function(goalie_name) {
   
   return(high_danger_shots + high_danger_goals)
 }
-
-goalie_shot_distance <- function(goalie_name) {
-  shot_distance_vector <- shot_goal_data %>%
-    filter(event_goalie_name == goalie_name) %>%
-    pull(shot_distance)
-  return(shot_distance_vector)
-}
-
+#function that calculates the number of high danger shots that a goalie has allowed 
 goalie_high_danger_goals_against <- function(goalie_name) {
   high_danger_goals <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance <= 29, event_type == "GOAL") %>%
@@ -119,6 +144,7 @@ goalie_high_danger_goals_against <- function(goalie_name) {
   return(high_danger_goals)
 }
 
+#function that calculates the high danger save percentage for a goalie.
 goalie_high_danger_save_pct <- function(goalie_name) {
   high_danger_shots <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance <= 29, event_type == "SHOT") %>%
@@ -133,6 +159,11 @@ goalie_high_danger_save_pct <- function(goalie_name) {
   return(round(high_danger_save_pct, digits = 3))
 }
 
+
+#Mid Range Statistics (shot being \>= 29ft and \<= 43 ft away from the opposing teams' net)
+
+
+#function that calculates the number of shots that a goaltender has faced from mid range shots
 goalie_mid_range_shots_against <- function(goalie_name) {
   mid_range_shots <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance >= 29 & shot_distance <= 43, event_type == "SHOT") %>%
@@ -143,14 +174,14 @@ goalie_mid_range_shots_against <- function(goalie_name) {
   
   return(mid_range_shots + mid_range_goals)
 }
-
+#function that calculates the number of goals that a goaltender has allowed from mid range shots
 goalie_mid_range_goals_against <- function(goalie_name) {
   mid_range_goals <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance >= 29 & shot_distance <= 43, event_type == "GOAL") %>%
     nrow()
   return(mid_range_goals)
 }
-
+#function that calculates the save percentage for a goaltender from mid range shots and goals
 goalie_mid_range_save_pct <- function(goalie_name) {
   mid_range_shots <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance >= 29 & shot_distance <= 43, event_type == "SHOT") %>%
@@ -166,9 +197,14 @@ goalie_mid_range_save_pct <- function(goalie_name) {
   return(round(mid_range_save_pct, digits = 3))
 }
 
+
+#Long Range Shots (shot being \>= 43 ft away while shot is still located within the offensive zone)
+
+
+#function that calculates the number of shots that a goaltender has faced from long range shots
 goalie_long_range_shots_against <- function(goalie_name) {
   long_range_shots <- shot_goal_data %>%
-    filter(event_goalie_name == goalie_name, shot_distance >= 43, event_type == "SHOT") %>%
+    filter(event_goalie_name == goalie_name, shot_distance >= 43 & shot_distance <= 64, event_type == "SHOT") %>%
     nrow()
   long_range_goals <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance >= 43, event_type == "GOAL") %>%
@@ -176,14 +212,14 @@ goalie_long_range_shots_against <- function(goalie_name) {
   
   return(long_range_shots + long_range_goals)
 }
-
+#function that calculates the number of goals that a goaltender has allowed from long range shots
 goalie_long_range_goals_against <- function(goalie_name) {
   long_range_goals <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance >= 43, event_type == "GOAL") %>%
     nrow()
   return(long_range_goals)
 }
-
+#function that calculates the save percentage of goaltender from long range shots and goals
 goalie_long_range_save_pct <- function(goalie_name) {
   long_range_shots <- shot_goal_data %>%
     filter(event_goalie_name == goalie_name, shot_distance >= 43, event_type == "SHOT") %>%
@@ -197,6 +233,10 @@ goalie_long_range_save_pct <- function(goalie_name) {
   long_range_save_pct <- (long_range_shots - long_range_goals) / long_range_shots
   return(round(long_range_save_pct, digits = 3))
 }
+
+
+#For loop and Dataframe creation
+
 
 # Initialize vectors for storing data
 goalie_name_vector <- c()
@@ -296,7 +336,16 @@ goalie_stats_df <- data.frame(
 # View the results
 View(goalie_stats_df)
 
+
+#CSV Writing
+
+
+
 goalie_stats_csv <- write.csv(goalie_stats_df, "goalie_stats_csv", row.names = FALSE)
+
+
+#Table and Graphs code
+
 
 #Data used to create graphs based on best overall save %
 best_save_pct <- goalie_stats_df %>%
@@ -329,47 +378,47 @@ best_pk_save_pct <- goalie_stats_df %>%
   slice_head(n = 10)
 
 #Data filtered to create graphs based on High Danger Save %
- best_hd_save_pct <- goalie_stats_df %>%
-   group_by(Goalie.Name) %>%
-   filter(Goalie.Shots.Against > 855) %>%
-   summarize(
-     high_danger_shots_against = max(Goalie.High.Danger.Shots.Against),
-     high_danger_goals_allowed = max(Goalie.High.Danger.Goals.Allowed),
-     high_danger_save_pct = max(Goalie.High.Danger.Save..)
-   ) %>%
-   ungroup() %>%
-   arrange(desc(high_danger_save_pct)) %>%
-   mutate(Rank = row_number()) %>%
-   slice_head(n = 10)
- 
- #Filtered data that is being used to create graphs based on 
- #mid danger/range save %
- best_mid_range_save_pct <- goalie_stats_df %>%
-   group_by(Goalie.Name) %>%
-   filter(Goalie.Shots.Against > 855) %>%
-   summarize(
-     mid_danger_shots_against = max(Goalie.Mid.Range.Shots.Against),
-     mid_danger_goals_allowed = max(Goalie.Mid.Range.Goals.Allowed),
-     mid_range_save_pct = max(Goalie.Mid.Range.Save..)
-   ) %>%
-   ungroup() %>%
-   arrange(desc(mid_range_save_pct)) %>%
-   mutate(Rank = row_number()) %>%
-   slice_head(n = 10)
- 
- #Filtered data used to create graphs based on long range save %
- best_long_range_save_pct <- goalie_stats_df %>%
-   group_by(Goalie.Name) %>%
-   filter(Goalie.Shots.Against > 855) %>%
-   summarize(
-     long_range_shots_against = max(Goalie.Long.Range.Shots.Against),
-     long_range_goals_allowed = max(Goalie.Long.Range.Goals.Allowed),
-     long_range_save_pct = max(Goalie.Long.Range.Save..)
-   ) %>%
-   ungroup() %>%
-   arrange(desc(long_range_save_pct)) %>%
-   mutate(Rank = row_number()) %>%
-   slice_head(n = 10)
+best_hd_save_pct <- goalie_stats_df %>%
+  group_by(Goalie.Name) %>%
+  filter(Goalie.Shots.Against > 855) %>%
+  summarize(
+    high_danger_shots_against = max(Goalie.High.Danger.Shots.Against),
+    high_danger_goals_allowed = max(Goalie.High.Danger.Goals.Allowed),
+    high_danger_save_pct = max(Goalie.High.Danger.Save..)
+  ) %>%
+  ungroup() %>%
+  arrange(desc(high_danger_save_pct)) %>%
+  mutate(Rank = row_number()) %>%
+  slice_head(n = 10)
+
+#Filtered data that is being used to create graphs based on 
+#mid danger/range save %
+best_mid_range_save_pct <- goalie_stats_df %>%
+  group_by(Goalie.Name) %>%
+  filter(Goalie.Shots.Against > 855) %>%
+  summarize(
+    mid_danger_shots_against = max(Goalie.Mid.Range.Shots.Against),
+    mid_danger_goals_allowed = max(Goalie.Mid.Range.Goals.Allowed),
+    mid_range_save_pct = max(Goalie.Mid.Range.Save..)
+  ) %>%
+  ungroup() %>%
+  arrange(desc(mid_range_save_pct)) %>%
+  mutate(Rank = row_number()) %>%
+  slice_head(n = 10)
+
+#Filtered data used to create graphs based on long range save %
+best_long_range_save_pct <- goalie_stats_df %>%
+  group_by(Goalie.Name) %>%
+  filter(Goalie.Shots.Against > 855) %>%
+  summarize(
+    long_range_shots_against = max(Goalie.Long.Range.Shots.Against),
+    long_range_goals_allowed = max(Goalie.Long.Range.Goals.Allowed),
+    long_range_save_pct = max(Goalie.Long.Range.Save..)
+  ) %>%
+  ungroup() %>%
+  arrange(desc(long_range_save_pct)) %>%
+  mutate(Rank = row_number()) %>%
+  slice_head(n = 10)
 
 #Table used to rank top 10 goalies by overall save percentage
 best_save_pct_table <- best_save_pct %>%
@@ -514,5 +563,3 @@ plot_ly(x = goalie_stats_df$Goalie.PK.Shots.Against,
     xaxis = list(title = "PK Shots Against"),
     yaxis = list(title = "PK Save %")
   )
-
-

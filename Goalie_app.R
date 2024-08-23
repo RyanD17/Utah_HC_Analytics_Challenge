@@ -1,13 +1,10 @@
 library(shiny)
 library(dplyr)
 library(DT)
-
-# Assuming the source file is correct
-source("C:/Users/ryand/Dropbox/Sports Analytics/hockey_data/Utah_HC_project/goalie_analysis.R")
+library(rmarkdown)
 
 goalie_stats <- read.csv("goalie_stats_csv")
 
-head(goalie_stats)
 
 metrics_list <- c(
   "Goalie.Games.Played",
@@ -121,19 +118,21 @@ server <- function(input, output, session) {
     filtered_data
   })
   
-  
-  
   output$goalieTable <- renderDT({
     selected_data() %>%
       datatable(
-        iris,
-        options = list(pageLength = 10, 
-                       scrollX = TRUE, 
-                       autoWidth = TRUE, 
-                       columnDefs = list(list(width = "auto", targets = "_all")),
-                       rownames = FALSE),
+        options = list(
+          pageLength = 10, 
+          scrollX = TRUE, 
+          autoWidth = TRUE, 
+          columnDefs = list(list(width = "auto", targets = "_all")),
+          rownames = FALSE
+        )
       )
   })
+  
 }
 
 shinyApp(ui = ui, server = server)
+
+
