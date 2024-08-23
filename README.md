@@ -2,4 +2,4 @@ This Repository will be showcasing my submition for Utah Hockey Club's Summer An
 
 Link to UI: https://ryand17.shinyapps.io/goaliestats/
 
-Paper is located in **pdf files** folder
+Paper is located in the **pdf files** folder
